@@ -15,7 +15,7 @@ Mongofoo.prototype = {
 
   // open mongo connection
   connect: function(value) {
-    this.mongo.connect(value);
+    this.database = this.mongo.connect(value);
   },
 
   // mount mongofoo to an application
@@ -45,7 +45,7 @@ Mongofoo.prototype = {
       }
 
       root.database[name].findOne({
-        _id: mongo.ObjectId(request.params.id)
+        _id: root.mongo.ObjectId(request.params.id)
       }, function(error, value) {
         response.send(value || '', { contentType: 'application/json' }, value ? 200 : 404);
       });
@@ -66,7 +66,7 @@ Mongofoo.prototype = {
         return response.send('', { contentType: 'application/json' }, 404);
       }
 
-      request.body._id = mongo.ObjectId(request.params.id);
+      request.body._id = root.mongo.ObjectId(request.params.id);
 
       root.database[name].save(request.body, function(err, value) {
         response.send(value, { contentType: 'application/json' }, 200);
@@ -78,12 +78,12 @@ Mongofoo.prototype = {
         return response.send('', { contentType: 'application/json' }, 404);
       }
 
-      root.database[name].remove({ _id: mongo.ObjectId(request.params.id) }, function(err, value) {
+      root.database[name].remove({ _id: root.mongo.ObjectId(request.params.id) }, function(err, value) {
         response.send('', { contentType: 'application/json' }, 200);
       });
     };
 
-    this.database.collection(name);
+    this.database[name] = this.database.collection(name);
 
     this.application.get('/' + name, fetchMany);
     this.application.post('/' + name, create);
