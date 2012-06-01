@@ -1,12 +1,3 @@
-
-// Usage:
-// mongofoo = require('./mongofoo');
-//
-// mongofoo.connect('http://username:password@hostname');
-// mongofoo.mount(application);
-//
-// mongofoo.resource('tasks');
-
 function Mongofoo() {
   this.mongo = require('mongojs');
 }
