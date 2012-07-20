@@ -1,7 +1,7 @@
 mongofoo
 ========
 
-Resourceful JSON API for Node (express) and Mongo
+Resourceful JSON API for Mongo in Node+Express
 
 Thanks @gett for `mongojs` https://github.com/gett/mongojs
 
@@ -15,20 +15,31 @@ Thanks @gett for `mongojs` https://github.com/gett/mongojs
 
     express = require('express');
     mongofoo = require('mongofoo');
-    
-    application = express.createServer();
+
+    application = express();
     application.listen(4567);
 
-    // Connect to mongo database
+    // The connection string is the standard one
     mongofoo.connect('localhost/mydb');
 
-    // Mount application
+    // Mount onto an application
     mongofoo.mount(application);
 
-    // Create a new resource, exposing:
-    // GET /tasks
-    // POST /tasks
-    // GET /tasks/:id
-    // PUT /tasks/:id
-    // DELETE /tasks/:id
-    mongofoo.resource('tasks');
+    // Register a new resource
+    mongofoo.resource('tasks'); // This will expose:
+                                //
+                                // GET /tasks
+                                // POST /tasks
+                                // GET /tasks/:id
+                                // PUT /tasks/:id
+                                // DELETE /tasks/:id
+
+Optionally you can provide a hash of custom actions for that resource:
+
+    mongofoo.resource('tasks', {
+
+      // GET /tasks/done
+      'GET /done': function(request, response) {
+        // `this` here will refer to the mongo collection object, so you can have access to [its API](http://www.mongodb.org/display/DOCS/Collections)
+      }
+    });
