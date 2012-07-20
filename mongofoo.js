@@ -1,86 +1,112 @@
+var _, mongo;
+
+_ = require('underscore');
+mongo = require('mongojs');
+
 function Mongofoo() {
-  this.mongo = require('mongojs');
 }
 
 Mongofoo.prototype = {
 
-  // open mongo connection
+  // open database connection
   connect: function(value) {
-    this.database = this.mongo.connect(value);
+    this.database = mongo.connect(value);
   },
 
-  // mount mongofoo to an application
+  // mount mongofoo onto an application
   mount: function(application) {
     this.application = application;
   },
 
-  // create new resource; open new mongo collection and map restful routes
-  resource: function(name) {
-    var root, shittyId, fetchMany, create, fetchOne, update, destroy;
+  // try to instance an ObjectId, returns false if fail
+  objectID: function(value) {
+    return typeof value === 'string' && value.length === 24 && mongo.ObjectId(value);
+  },
 
-    root = this;
+  // register new resource with optional custom actions
+  resource: function(name, actions) {
+    var resource, objectID;
 
-    shittyId = function(value) {
-      return !(typeof value === 'string' && value.length === 24);
-    };
+    objectID = this.objectID;
 
-    fetchMany = function(request, response) {
-      root.database[name].find(request.query, function(err, docs) {
-        response.send(docs, { contentType: 'application/json' });
-      });
-    };
+    resource = this.database[name] = this.database.collection(name);
 
-    fetchOne = function(request, response) {
-      if(shittyId(request.params.id)) {
-        return response.send('', { contentType: 'application/json' }, 404);
+    _.each(actions || {}, function(action, route) {
+      var re, parts;
+
+      re = /(GET|POST|PUT|DELETE) (\/.+)/;
+
+      if(!re.exec(route)) {
+        return true;
       }
 
-      root.database[name].findOne({
-        _id: root.mongo.ObjectId(request.params.id)
-      }, function(error, value) {
-        response.send(value || '', { contentType: 'application/json' }, value ? 200 : 404);
-      });
-    };
+      console.log('Custom action:', route);
 
-    create = function(request, response) {
+      parts = route.match(re);
+
+      this.application[parts[1].toLowerCase()]('/' + name + parts[2], function(request, response) {
+        action.apply(resource, [request, response]);
+      });
+
+    }, this);
+
+    // GET /resources
+    this.application.get('/' + name, function(request, response) {
+      resource.find(request.query, function(err, docs) {
+        response.json(docs);
+      });
+    });
+
+    // GET /resources/1
+    this.application.get('/' + name + '/:id', function(request, response) {
+      if(!objectID(request.params.id)) {
+        return response.json('', 404);
+      }
+
+      resource.findOne({
+        _id: objectID(request.params.id)
+      }, function(error, docs) {
+        response.json(docs || '', docs ? 200 : 404);
+      });
+    });
+
+    // POST /resources
+    this.application.post('/' + name, function(request, response) {
       if(request.body._id) {
         delete request.body._id;
       }
 
-      root.database[name].save(request.body, function(err, value) {
-        response.send(value, { contentType: 'application/json' }, 201);
+      resource.save(request.body, function(err, docs) {
+        response.json(docs, 201);
       });
-    };
+    });
 
-    update = function(request, response) {
-      if(shittyId(request.params.id)) {
-        return response.send('', { contentType: 'application/json' }, 404);
+    // PUT /resources/1
+    this.application.put('/' + name + '/:id', function(request, response) {
+      if(!objectID(request.params.id)) {
+        return response.json('', 404);
       }
 
-      request.body._id = root.mongo.ObjectId(request.params.id);
+      request.body._id = objectID(request.params.id);
+      delete request.params.id;
 
-      root.database[name].save(request.body, function(err, value) {
-        response.send(value, { contentType: 'application/json' }, 200);
+      resource.save(request.body, function(err, docs) {
+        response.json(docs, 200);
       });
-    };
+    });
 
-    destroy = function(request, response) {
-      if(shittyId(request.params.id)) {
-        return response.send('', { contentType: 'application/json' }, 404);
+    // PUT /resources/1
+    this.application.delete('/' + name + '/:id', function(request, response) {
+      if(!objectID(request.params.id)) {
+        return response.json('', 404);
       }
 
-      root.database[name].remove({ _id: root.mongo.ObjectId(request.params.id) }, function(err, value) {
-        response.send('', { contentType: 'application/json' }, 200);
+      resource.remove({
+        _id: objectID(request.params.id)
+      }, function(err, docs) {
+        response.json(docs, 200);
       });
-    };
-
-    this.database[name] = this.database.collection(name);
-
-    this.application.get('/' + name, fetchMany);
-    this.application.post('/' + name, create);
-    this.application.get('/' + name + '/:id', fetchOne);
-    this.application.put('/' + name + '/:id', update);
-    this.application.delete('/' + name + '/:id', destroy);
+    });
   }
 };
 
