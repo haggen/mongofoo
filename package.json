@@ -2,12 +2,13 @@
   "name": "mongofoo",
   "description": "Restful resources for Node and Mongo",
   "homepage": "https://github.com/haggen/mongofoo",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "author": "Arthur Corenzan <arthur@corenzan.com>",
   "keywords": ["mongo", "node", "rest", "resource"],
   "main": "mongofoo",
   "engine": ">= 0.6.15",
   "dependencies": {
-    "mongojs": "0.4.3"
+    "mongojs": "0.4.3",
+    "underscore": "1.3.3"
   }
 }
