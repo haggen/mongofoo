@@ -1,7 +1,7 @@
 var _, mongo;
 
 _ = require('underscore');
-mongo = require('mongojs');
+mongo = require('mongoskin');
 
 function Mongofoo() {
 }
@@ -10,7 +10,7 @@ Mongofoo.prototype = {
 
   // open database connection
   connect: function(value) {
-    this.database = mongo.connect(value);
+    this.database = mongo.db(value);
   },
 
   // mount mongofoo onto an application
@@ -20,7 +20,7 @@ Mongofoo.prototype = {
 
   // try to instance an ObjectId, returns false if fail
   objectID: function(value) {
-    return typeof value === 'string' && value.length === 24 && mongo.ObjectId(value);
+    return typeof value === 'string' && value.length === 24 && mongo.ObjectID.createFromHexString(value);
   },
 
   // register new resource with optional custom actions
@@ -28,6 +28,7 @@ Mongofoo.prototype = {
     var resource, objectID;
 
     objectID = this.objectID;
+    this.database.objectID = objectID;
 
     resource = this.database[name] = this.database.collection(name);
 
@@ -40,20 +41,18 @@ Mongofoo.prototype = {
         return true;
       }
 
-      console.log('Custom action:', route);
-
       parts = route.match(re);
 
       this.application[parts[1].toLowerCase()]('/' + name + parts[2], function(request, response) {
-        action.apply(resource, [request, response]);
+        action.apply(this.database, [request, response]);
       });
 
     }, this);
 
     // GET /resources
     this.application.get('/' + name, function(request, response) {
-      resource.find(request.query, function(err, docs) {
-        response.json(docs);
+      resource.find(request.query).toArray(function(error, docs) {
+        response.json(error || docs);
       });
     });
 
@@ -66,7 +65,7 @@ Mongofoo.prototype = {
       resource.findOne({
         _id: objectID(request.params.id)
       }, function(error, docs) {
-        response.json(docs || '', docs ? 200 : 404);
+        response.json(error || docs);
       });
     });
 
@@ -76,8 +75,8 @@ Mongofoo.prototype = {
         delete request.body._id;
       }
 
-      resource.save(request.body, function(err, docs) {
-        response.json(docs, 201);
+      resource.save(request.body, {}, function(error, docs) {
+        response.json(error || docs, 201);
       });
     });
 
@@ -90,21 +89,21 @@ Mongofoo.prototype = {
       request.body._id = objectID(request.params.id);
       delete request.params.id;
 
-      resource.save(request.body, function(err, docs) {
-        response.json(docs, 200);
+      resource.save(request.body, {}, function(error, docs) {
+        response.json(error || docs);
       });
     });
 
     // PUT /resources/1
     this.application.delete('/' + name + '/:id', function(request, response) {
       if(!objectID(request.params.id)) {
-        return response.json('', 404);
+        return response.json(404);
       }
 
       resource.remove({
         _id: objectID(request.params.id)
-      }, function(err, docs) {
-        response.json(docs, 200);
+      }, function() {
+        response.json('');
       });
     });
   }
