@@ -1,45 +1,45 @@
-mongofoo
-========
+# mongofoo
 
-Resourceful JSON API for Mongo in Node+Express
+Resourceful JSON API for Express+Mongo
 
-Thanks @gett for `mongojs` https://github.com/gett/mongojs
-
-**Install:**
+## Install:
 
     npm install mongofoo
 
-**Usage:**
+## Usage:
 
-    var express, mongofoo, application;
+    var express, mongofoo, http;
 
     express = require('express');
     mongofoo = require('mongofoo');
 
-    application = express();
-    application.listen(4567);
+    http = express();
+    http.listen(4567);
 
-    // The connection string is the standard one
+    // Open database connection
     mongofoo.connect('localhost/mydb');
 
-    // Mount onto an application
-    mongofoo.mount(application);
+    // Mount on the application
+    mongofoo.mount(http);
 
-    // Register a new resource
-    mongofoo.resource('tasks'); // This will expose:
-                                //
-                                // GET /tasks
-                                // POST /tasks
-                                // GET /tasks/:id
-                                // PUT /tasks/:id
-                                // DELETE /tasks/:id
+    // GET /tasks
+    // POST /tasks {}
+    // GET /tasks/:id
+    // PUT /tasks/:id {}
+    // DELETE /tasks/:id
+    mongofoo.resource('tasks');
 
 Optionally you can provide a hash of custom actions for that resource:
 
     mongofoo.resource('tasks', {
 
-      // GET /tasks/done
       'GET /done': function(request, response) {
-        // `this` here will refer to the mongo collection object, so you can have access to [its API](http://www.mongodb.org/display/DOCS/Collections)
+        this.tasks.find({ done: true }).toArray(function(error, tasks) {
+          response.json(tasks); 
+        })
       }
     });
+
+## Contribute:
+
+This is a pet project I started to toy and learn Node, Mongo, realtime applications and stuff. But I don't see why it couldn't grow and become one serious motherf*cker module for production purposes. Off course it needs to mature until there. So if you like it, got comments or critics, feel free and tell me. You can open an issue, send an email or whatever.
