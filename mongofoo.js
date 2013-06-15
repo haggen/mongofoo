@@ -94,7 +94,7 @@ Mongofoo.prototype = {
       });
     });
 
-    // PUT /resources/1
+    // DELETE /resources/1
     this.application.delete('/' + name + '/:id', function(request, response) {
       if(!objectID(request.params.id)) {
         return response.json(404);
